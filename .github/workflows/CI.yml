@@ -43,9 +43,15 @@ jobs:
           fi
           "$python" -m pip install matplotlib
           echo "PYTHON=$python" >> "$GITHUB_ENV"
-          # Override any stale PyCall deps.jl restored from the cache (e.g.
-          # pointing at a Conda Python that no longer exists).
-          echo "PYCALL_JL_RUNTIME_PYTHON=$python" >> "$GITHUB_ENV"
+      - name: Remove cached PyCall build state
+        shell: julia --color=yes {0}
+        run: |
+          # Delete any cached PyCall deps.jl so it is rebuilt against the
+          # Python configured above instead of a stale Conda Python from a
+          # previous run.
+          for dep in DEPOT_PATH, f in glob(joinpath(dep, "packages", "PyCall", "*", "deps", "deps.jl"))
+              rm(f)
+          end
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1

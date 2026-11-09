@@ -2,6 +2,11 @@ name: CI
 on:
   - push
   - pull_request
+env:
+  # Force PyCall to use its private Conda-based Python distribution on all
+  # runners so that matplotlib is available everywhere (see
+  # https://github.com/JuliaPy/PyCall.jl#specifying-the-python-version).
+  PYTHON: ""
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}

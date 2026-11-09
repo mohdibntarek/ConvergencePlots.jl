@@ -1,10 +1,19 @@
-randcolor(rng) = (rand(rng), rand(rng), rand(rng)) .* 0.7
+const GOLDEN_ANGLE_DEG = 180 * (3 - sqrt(5))
+
+"""
+    defaultcolor(i::Integer)
+
+Return the default color of curve `i` as a `Colors.RGB{Float64}` colorant.
+The colors are generated deterministically using the golden angle hue
+sequence so that consecutive curves get visually distinct colors.
+"""
+defaultcolor(i::Integer) = convert(
+    RGB{Float64},
+    HSV(mod((i - 1) * GOLDEN_ANGLE_DEG, 360), 0.65, 0.72),
+)
 
 function getoptions(names, old_options)
-    rng = Random.MersenneTwister()
-    Random.seed!(rng, 12344321)
-
-    options = Dict()
+    options = Dict{String,NamedTuple}()
     if old_options === nothing
         for n in names
             options[n] = (label = n,)
@@ -26,21 +35,11 @@ function getoptions(names, old_options)
             options[n] = merge(old_options, (label = n,))
         end
     end
-
-    # Fix the same color problem when using 2 y-axes
-    for i in 1:(length(names) ÷ 2)
-        n1, n2 = names[2i - 1], names[2i]
-        if !(haskey(options[n2], :color))
-            options[n2] = merge(options[n2], (color = randcolor(rng),))
-        end
-        if !(haskey(options[n1], :color))
-            options[n1] = merge(options[n1], (color = randcolor(rng),))
-        end
-    end
-    if mod(length(names), 2) == 1
-        n = names[end]
-        if !(haskey(options[n], :color))
-            options[n] = merge(options[n], (color = randcolor(rng),))
+    # Deterministic default colors for all the curves so that curves sharing
+    # or twinning axes never get the same color.
+    for (i, n) in enumerate(names)
+        if !haskey(options[n], :color)
+            options[n] = merge(options[n], (color = defaultcolor(i),))
         end
     end
     return options

@@ -1,13 +1,20 @@
 module ConvergencePlots
 
-export ConvergencePlot,
+export AbstractPlotBackend,
+    default_backend,
+    pyplotbackend,
+    plotsbackend,
+    makiebackend,
+    ConvergencePlot,
     addpoint!,
     addpoints!,
     updateplot!,
     closeplot!
 
-using PyPlot, Parameters, Random
+using Parameters
+using Colors: RGB, HSV
 
+include("backend.jl")
 include("options.jl")
 include("plot.jl")
 

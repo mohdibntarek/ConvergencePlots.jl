@@ -1,16 +1,17 @@
 """
-    ConvergencePlot
+    ConvergencePlot{B}
 
 A live convergence plot that keeps track of the history of one or more
 convergence metrics. Points are added with [`addpoint!`](@ref) or
 [`addpoints!`](@ref), and the plot is (re)drawn with [`updateplot!`](@ref).
+The plotting is delegated to a backend of type `B <: AbstractPlotBackend`
+provided by a package extension; see [`AbstractPlotBackend`](@ref).
 """
-mutable struct ConvergencePlot
-    fig
-    axs
+mutable struct ConvergencePlot{B<:AbstractPlotBackend}
+    backend::B
     names::Vector{String}
-    history::Dict
-    options::Dict
+    history::Dict{String,Vector{Float64}}
+    options::Dict{String,NamedTuple}
     npoints::Int
     figsize::Tuple{Int,Int}
 end
@@ -18,6 +19,7 @@ end
 """
     ConvergencePlot(
         npoints::Int = 100000;
+        backend = default_backend(),
         names = ["Residual"],
         options = nothing,
         show = false,
@@ -25,24 +27,31 @@ end
     )
 
 Create an empty convergence plot that keeps the last `npoints` history points
-for every metric in `names`. Older points are overwritten.
+for every metric in `names`. Older points are overwritten. A plotting package
+must be loaded for the default backend to be available, see
+[`default_backend`](@ref).
 
 # Keyword arguments
 
+- `backend`: the plotting backend, e.g. [`pyplotbackend`](@ref),
+  [`plotsbackend`](@ref) or [`makiebackend`](@ref). The default is
+  [`default_backend`](@ref).
 - `names`: a `Vector{String}` of the convergence metrics to plot. The default
   value is `["Residual"]`.
 - `options`: a dictionary mapping each name in `names` to a `NamedTuple` of
-  plotting options to pass to `PyPlot`, e.g. `(label = "KKT residual",
-  ls = "--", marker = "+")`. If `label` is not passed, it defaults to the
-  corresponding name in `names`. A single `NamedTuple` of options without the
-  `label` option can also be passed, and it will be used for all the names.
+  plotting options to pass to the backend, e.g. `(label = "KKT residual",
+  ls = "--", marker = "+")` for the `PyPlot` backend. If `label` is not
+  passed, it defaults to the corresponding name in `names`. A single
+  `NamedTuple` of options without the `label` option can also be passed, and
+  it will be used for all the names.
 - `show`: if `true` the empty figure will be displayed. This is `false` by
   default.
-- `figsize`: the `(width, height)` of the figure in inches, passed to
-  `PyPlot.subplots`.
+- `figsize`: the `(width, height)` of the figure. The unit is backend
+  dependent: inches for `PyPlot` and pixels for `Plots` and `Makie`.
 """
 function ConvergencePlot(
     npoints::Int = 100000;
+    backend = default_backend(),
     names = ["Residual"],
     options = nothing,
     show = false,
@@ -51,11 +60,10 @@ function ConvergencePlot(
     history = Dict(n => Float64[] for n in names)
     options = getoptions(names, options)
     @assert keys(history) == keys(options)
-    fig, axs = emptyplot(length(names), figsize = figsize)
-    if show
-        PyPlot.show(block = false)
-    end
-    return ConvergencePlot(fig, axs, names, history, options, npoints, figsize)
+    _initialize!(backend, length(names), figsize)
+    plot = ConvergencePlot(backend, names, history, options, npoints, figsize)
+    show && _show!(backend)
+    return plot
 end
 
 """
@@ -72,7 +80,7 @@ is `false`, the history is updated without redrawing the plot. All other
 keyword arguments are forwarded to [`updateplot!`](@ref).
 """
 function addpoint!(plot::ConvergencePlot, y::Real; kwargs...)
-    @assert length(keys(plot.history)) == 1
+    @assert length(plot.history) == 1
     k = first(keys(plot.history))
     return addpoint!(plot, Dict(k => y); kwargs...)
 end
@@ -131,28 +139,16 @@ figure is displayed. If `filename` is not `nothing`, the figure is saved to
 that file.
 """
 function updateplot!(plot::ConvergencePlot; show = true, filename = nothing)
-    @unpack fig, axs, names, history, options = plot
-    keepinteractive() do
-        for ax in axs
-            ax.clear()
-        end
-        for i in 1:length(names)
-            ax = axs[i]
-            n = names[i]
-            ax.plot(1:length(history[n]), history[n]; options[n]...)
-            if mod(i, 2) == 1
-                ax.set_xlabel("Iteration")
-            end
-            ax.set_ylabel(n)
-            ax.tick_params(axis = "y", labelcolor = options[n].color)
-        end
-        fig.canvas.draw()
-        fig.legend(loc = 2)
-        if show
-            PyPlot.show(block = false)
-        end
+    @unpack backend, names, history, options = plot
+    _clear!(backend)
+    for (i, n) in enumerate(names)
+        h = history[n]
+        isempty(h) && continue
+        _plotseries!(backend, i, 1:length(h), h; options[n]...)
     end
-    filename !== nothing && fig.savefig(filename)
+    _decorate!(backend, names, options)
+    show && _show!(backend)
+    filename !== nothing && _save!(backend, filename)
     return plot
 end
 
@@ -162,37 +158,7 @@ end
 Close the figure of `plot` and replace it with a new empty one.
 """
 function closeplot!(plot::ConvergencePlot)
-    PyPlot.close(plot.fig)
-    fig, axs = emptyplot(length(plot.names), figsize = plot.figsize)
-    @pack! plot = fig, axs
+    _close!(plot.backend)
+    _initialize!(plot.backend, length(plot.names), plot.figsize)
     return plot
-end
-
-function emptyplot(ncurves; figsize = (20, 10))
-    if ncurves % 2 == 0
-        nsubplots = (ncurves ÷ 2)
-    else
-        nsubplots = (ncurves ÷ 2) + 1
-    end
-    local fig, axs
-    keepinteractive() do
-        fig, axs1 = PyPlot.subplots(nsubplots, figsize = figsize)
-        axs = []
-        for i in 1:nsubplots
-            ax1 = nsubplots == 1 ? axs1 : axs1[i]
-            push!(axs, ax1)
-            if 2i <= ncurves
-                ax2 = ax1.twinx()
-                push!(axs, ax2)
-            end
-        end
-    end
-    return fig, axs
-end
-
-function keepinteractive(f)
-    was_interactive = PyPlot.isinteractive()
-    was_interactive && PyPlot.ioff()
-    f()
-    was_interactive && PyPlot.ion()
 end

@@ -36,10 +36,4 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v2
       - name: Run the backend extension tests
-        shell: julia --color=yes --project=. {0}
-        run: |
-          using Pkg
-          Pkg.activate("test/integration")
-          Pkg.develop(PackageSpec(path = "."))
-          Pkg.instantiate()
-          include("test/integration/runtests.jl")
+        run: julia --color=yes --project=. -e 'using Pkg; Pkg.activate("test/integration"); Pkg.develop(PackageSpec(path = ".")); Pkg.instantiate(); include("test/integration/runtests.jl")'

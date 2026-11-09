@@ -23,6 +23,7 @@ jobs:
           # x64 Python builds execute as arm64 on Apple Silicon).
           - os: macOS-latest
             arch: aarch64
+            version: '1'
         exclude:
           - os: macOS-latest
             arch: x64

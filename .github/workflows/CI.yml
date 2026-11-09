@@ -33,9 +33,12 @@ jobs:
       - uses: julia-actions/cache@v2
       # Use a fixed Python with matplotlib for the PyPlot backend tests instead
       # of PyCall's Conda distribution, which is flaky on ephemeral runners.
+      # Note: pin the architecture to x64 since macOS-latest runs x64 Julia
+      # under Rosetta on arm64 hardware.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          architecture: x64
       - name: Install matplotlib
         run: ${{ matrix.python }} -m pip install matplotlib
       - uses: julia-actions/julia-buildpkg@v1

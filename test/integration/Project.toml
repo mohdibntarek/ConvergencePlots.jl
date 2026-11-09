@@ -1,0 +1,14 @@
+name = "ConvergencePlotsIntegrationTests"
+uuid = "f8827a92-baa1-4681-8cea-e40d1759cd72"
+
+[deps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+ConvergencePlots = "e9c76d45-d282-4a42-92e1-2fa9292d7569"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+CairoMakie = "0.13"
+Makie = "0.21, 0.22, 0.23"
+Plots = "1"

@@ -1,0 +1,39 @@
+name: IntegrationTest
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+    tags: '*'
+
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  test:
+    name: Backend extensions - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v2
+      - name: Run the backend extension tests
+        run: julia --color=yes --project=. -e 'using Pkg; Pkg.activate("test/integration"); Pkg.develop(PackageSpec(path = ".")); Pkg.instantiate(); include("test/integration/runtests.jl")'

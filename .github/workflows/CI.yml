@@ -17,6 +17,15 @@ jobs:
           - windows-latest
         arch:
           - x64
+        include:
+          # macOS-latest is an Apple Silicon runner; run native arm64 Julia
+          # there so that it matches the arm64 Python used by PyCall (the
+          # x64 Python builds execute as arm64 on Apple Silicon).
+          - os: macOS-latest
+            arch: aarch64
+        exclude:
+          - os: macOS-latest
+            arch: x64
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
@@ -26,13 +35,10 @@ jobs:
       - uses: julia-actions/cache@v2
       # Use a fixed Python with matplotlib for the PyPlot backend tests instead
       # of PyCall's Conda distribution, which is flaky on ephemeral runners.
-      # Pin the architecture to x64 since macOS-latest runs x64 Julia under
-      # Rosetta on arm64 hardware, and resolve the interpreter by absolute path
-      # because the runner images also ship a system Python on PATH.
+      # The architecture matches the Julia arch of the matrix entry.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          architecture: x64
       - name: Install matplotlib and configure PyCall's Python
         shell: bash
         run: |

@@ -2,11 +2,6 @@ name: CI
 on:
   - push
   - pull_request
-env:
-  # Force PyCall to use its private Conda-based Python distribution on all
-  # runners so that matplotlib is available everywhere (see
-  # https://github.com/JuliaPy/PyCall.jl#specifying-the-python-version).
-  PYTHON: ""
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
@@ -22,6 +17,13 @@ jobs:
           - windows-latest
         arch:
           - x64
+        include:
+          - os: ubuntu-latest
+            python: python3
+          - os: macOS-latest
+            python: python3
+          - os: windows-latest
+            python: python
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
@@ -29,15 +31,19 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v2
+      # Use a fixed Python with matplotlib for the PyPlot backend tests instead
+      # of PyCall's Conda distribution, which is flaky on ephemeral runners.
+      - uses: actions/setup-python@v5
         with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+          python-version: '3.12'
+      - name: Install matplotlib
+        run: ${{ matrix.python }} -m pip install matplotlib
       - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ${{ matrix.python }}
       - uses: julia-actions/julia-runtest@v1
+        env:
+          PYTHON: ${{ matrix.python }}
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v5
         with:

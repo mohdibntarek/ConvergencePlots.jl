@@ -44,14 +44,10 @@ jobs:
           "$python" -m pip install matplotlib
           echo "PYTHON=$python" >> "$GITHUB_ENV"
       - name: Remove cached PyCall build state
-        shell: julia --color=yes {0}
-        run: |
-          # Delete any cached PyCall deps.jl so it is rebuilt against the
-          # Python configured above instead of a stale Conda Python from a
-          # previous run.
-          for dep in DEPOT_PATH, f in glob(joinpath(dep, "packages", "PyCall", "*", "deps", "deps.jl"))
-              rm(f)
-          end
+        shell: bash
+        # Delete any cached PyCall deps.jl so it is rebuilt against the Python
+        # configured above instead of a stale Conda Python from a previous run.
+        run: rm -f "$HOME/.julia/packages/PyCall/"*/deps/deps.jl
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1

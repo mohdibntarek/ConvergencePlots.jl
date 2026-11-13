@@ -146,6 +146,17 @@ end
     @test_throws AssertionError addpoints!(plot, Dict("C" => [1.0]))
     closeplot!(plot)
     PyPlot.close(plot.backend.fig)
+
+    # Regression: a batch that overflows the window while the history is not
+    # yet at capacity (e.g. 60/100 points + a batch of 50) used to write the
+    # batch into the too-short `h[keep+1:end]` slice and raise a
+    # DimensionMismatch. The last `npoints` points must survive.
+    plot = ConvergencePlot(100)
+    addpoints!(plot, Dict("Residual" => collect(1.0:60.0)); show = false)
+    addpoints!(plot, Dict("Residual" => collect(61.0:110.0)); show = false)
+    @test plot.history["Residual"] == collect(11.0:110.0)
+    closeplot!(plot)
+    PyPlot.close(plot.backend.fig)
 end
 
 @testset "options" begin
@@ -239,6 +250,12 @@ end
         @test !PyPlot.isinteractive()
     end
     @test !PyPlot.isinteractive()
+
+    # The interactive state is restored even when f throws.
+    PyPlot.ion()
+    @test_throws ErrorException PyPlotExt.keepinteractive(() -> error("boom"))
+    @test PyPlot.isinteractive()
+    PyPlot.ioff()
 end
 
 @testset "updateplot!" begin
@@ -267,5 +284,34 @@ end
     # The new plot is empty and usable.
     addpoint!(plot, 1.0; show = false)
     @test plot.history["Residual"] == [1.0]
+    PyPlot.close(plot.backend.fig)
+end
+
+@testset "_show! displays the backend figure" begin
+    plot = ConvergencePlot(show = false)
+    backend = plot.backend
+    fig = backend.fig
+    globals_dict = PyPlot.PyDict(Dict("fig" => fig, "plt" => PyPlot.plt))
+    # Spy on the global matplotlib.pyplot.show and on the backend figure's
+    # manager.show to verify that _show! displays the backend's own figure
+    # instead of calling the global show.
+    PyPlot.pycall(PyPlot.pybuiltin("exec"), PyPlot.PyObject, """
+    _cp_orig_show = plt.show
+    _cp_plt_show_calls = []
+    plt.show = lambda *args, **kwargs: _cp_plt_show_calls.append(True)
+    fig.canvas.manager.show = lambda *args, **kwargs: setattr(fig, "_cp_shown", True)
+    """, globals_dict)
+    try
+        @test ConvergencePlots._show!(backend) === backend
+        calls = PyPlot.pycall(
+            PyPlot.pybuiltin("eval"), PyPlot.PyObject, "_cp_plt_show_calls", globals_dict,
+        )
+        @test PyPlot.pycall(calls."__len__", Int) == 0
+        @test PyPlot.hasproperty(fig, :_cp_shown)
+    finally
+        PyPlot.pycall(
+            PyPlot.pybuiltin("exec"), PyPlot.PyObject, "plt.show = _cp_orig_show", globals_dict,
+        )
+    end
     PyPlot.close(plot.backend.fig)
 end

@@ -57,7 +57,14 @@ end
 
 function _show!(b::PyPlotBackend)
     keepinteractive() do
-        PyPlot.show(block = false)
+        # Display the backend's own figure instead of the global
+        # PyPlot.show(), which shows all figures (or gcf()).
+        if PyPlot.hasproperty(b.fig, :show)
+            PyPlot.pycall(b.fig."show", PyPlot.PyObject)
+        else
+            # Fallback for very old matplotlib versions without Figure.show.
+            PyPlot.show(block = false)
+        end
     end
     return b
 end
@@ -109,8 +116,11 @@ end
 function keepinteractive(f)
     was_interactive = PyPlot.isinteractive()
     was_interactive && PyPlot.ioff()
-    f()
-    was_interactive && PyPlot.ion()
+    try
+        f()
+    finally
+        was_interactive && PyPlot.ion()
+    end
 end
 
 end

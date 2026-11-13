@@ -48,7 +48,7 @@ The keyword arguments you can pass to the `ConvergencePlot` constructor are:
 
 - `show`: if `true` the empty figure will be displayed. This is `false` by default.
 
-- `figsize`: the `(width, height)` of the figure. The unit is backend dependent: inches for `PyPlot` and pixels for `Plots` and `Makie`.
+- `figsize`: the `(width, height)` of the figure. The unit is backend dependent: inches for `PyPlot`; for `Plots` and `Makie` the value is scaled by a factor of 100 and interpreted as pixels.
 
 After creating an empty plot, you can add points to it as follows:
 

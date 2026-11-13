@@ -47,7 +47,8 @@ must be loaded for the default backend to be available, see
 - `show`: if `true` the empty figure will be displayed. This is `false` by
   default.
 - `figsize`: the `(width, height)` of the figure. The unit is backend
-  dependent: inches for `PyPlot` and pixels for `Plots` and `Makie`.
+  dependent: inches for `PyPlot`; for `Plots` and `Makie` the value is
+  scaled by a factor of 100 and interpreted as pixels.
 """
 function ConvergencePlot(
     npoints::Int = 100000;
@@ -124,7 +125,12 @@ function addpoints!(plot::ConvergencePlot, y::Dict; update = false, kwargs...)
         else
             keep = npoints - len
             h[1:keep] = h[end-keep+1:end]
-            h[keep+1:end] = yk
+            # The history may not yet be at capacity; shrink it to `keep`
+            # before appending the batch so the last `npoints` points survive
+            # (writing `len` elements into `h[keep+1:end]` raised a
+            # DimensionMismatch whenever `length(h) < npoints`).
+            resize!(h, keep)
+            append!(h, yk)
         end
     end
     update && updateplot!(plot; kwargs...)

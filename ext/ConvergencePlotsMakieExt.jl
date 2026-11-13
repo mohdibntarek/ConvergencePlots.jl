@@ -27,6 +27,11 @@ function _initialize!(b::MakieBackend, ncurves, figsize)
     b.ncurves = ncurves
     b.figsize = figsize
     b.fig, b.axes = makiefigure(ncurves, figsize)
+    # Drop any plots, labels, and legend left over from a previous figure;
+    # they belong to the old layout and must not leak into the new one.
+    b.legend = nothing
+    empty!(b.plots)
+    empty!(b.labels)
     return b
 end
 
@@ -75,6 +80,23 @@ function _save!(b::MakieBackend, filename)
 end
 
 function _close!(b::MakieBackend)
+    if b.fig !== nothing
+        # Close the figure window through the screen it is displayed on when
+        # the Makie backend supports it (Makie >= 0.21). There is no screen
+        # for static backends such as CairoMakie or for figures that were
+        # never displayed, in which case there is nothing to close.
+        screen = try
+            Makie.getscreen(b.fig)
+        catch
+            nothing
+        end
+        if screen !== nothing && hasmethod(close, Tuple{typeof(screen)})
+            try
+                close(screen)
+            catch
+            end
+        end
+    end
     b.fig = nothing
     b.axes = Any[]
     b.legend = nothing

@@ -41,6 +41,14 @@ end
     plot = ConvergencePlot(names = ["A", "B"])
     @test plot.backend isa PlotsExt.PlotsBackend
     test_backend(plot)
+
+    # figsize is scaled by a factor of 100 and used as the pixel size.
+    plot = ConvergencePlot(
+        backend = ConvergencePlots.plotsbackend(),
+        figsize = (5, 3),
+    )
+    @test plot.backend.obj[:size] == (500, 300)
+    closeplot!(plot)
 end
 
 @testset "Makie backend" begin
@@ -57,4 +65,46 @@ end
     )
     @test ConvergencePlots._show!(plot.backend) === plot.backend
     test_backend(plot)
+
+    # Reusing a backend for a second ConvergencePlot must not leak plots,
+    # labels, or a legend bound to the previous figure.
+    backend = ConvergencePlots.makiebackend()
+    plot = ConvergencePlot(backend = backend, names = ["A", "B"])
+    addpoint!(plot, Dict("A" => 1.0, "B" => 2.0); show = false)
+    @test length(backend.plots) == 2
+    @test backend.labels == ["A", "B"]
+    @test backend.legend !== nothing
+    oldfig = backend.fig
+    plot = ConvergencePlot(backend = backend, names = ["C"])
+    @test backend.fig !== oldfig
+    @test isempty(backend.plots)
+    @test isempty(backend.labels)
+    @test backend.legend === nothing
+    # The reused backend is usable: a fresh legend is bound to the new figure.
+    addpoint!(plot, 1.0; show = false)
+    @test length(backend.plots) == 1
+    @test backend.labels == ["C"]
+    @test backend.legend !== nothing
+    @test backend.legend.parent === backend.fig
+    closeplot!(plot)
+
+    # _close! drops the figure and resets the state. It is a no-op for
+    # figures without a screen (CairoMakie) and can be called twice.
+    backend = ConvergencePlots.makiebackend()
+    ConvergencePlots._initialize!(backend, 1, (5, 3))
+    @test ConvergencePlots._close!(backend) === backend
+    @test backend.fig === nothing
+    @test isempty(backend.axes)
+    @test backend.legend === nothing
+    @test isempty(backend.plots)
+    @test isempty(backend.labels)
+    @test ConvergencePlots._close!(backend) === backend
+
+    # figsize is scaled by a factor of 100 and used as the pixel size.
+    plot = ConvergencePlot(
+        backend = ConvergencePlots.makiebackend(),
+        figsize = (5, 3),
+    )
+    @test size(plot.backend.fig.scene) == (500, 300)
+    closeplot!(plot)
 end

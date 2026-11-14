@@ -71,18 +71,33 @@ jobs:
         env:
           DEST: ${{ startsWith(github.ref, 'refs/tags/') && 'stable' || (github.event_name == 'pull_request' && format('preview/PR{0}', github.event.pull_request.number) || github.event.inputs.destination) || 'dev' }}
         run: |
-          git clone --depth=1 --branch gh-pages \
-            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" /tmp/ghp \
-            || { mkdir -p /tmp/ghp; }
-          rm -rf "/tmp/ghp/$DEST"
-          mkdir -p "/tmp/ghp/$DEST"
-          cp -r docs/build/. "/tmp/ghp/$DEST/"
-          touch /tmp/ghp/.nojekyll
-          cd /tmp/ghp
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet || (git commit -m "deploy: $DEST" && git push origin gh-pages)
+          REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          rm -rf /tmp/ghp
+          if git clone --depth=1 --branch gh-pages "$REPO_URL" /tmp/ghp 2>/dev/null; then
+            rm -rf "/tmp/ghp/$DEST"
+            mkdir -p "/tmp/ghp/$DEST"
+            cp -r docs/build/. "/tmp/ghp/$DEST/"
+            touch /tmp/ghp/.nojekyll
+            cd /tmp/ghp
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git diff --cached --quiet || (git commit -m "deploy: $DEST" && git push origin gh-pages)
+          else
+            # No gh-pages branch yet: seed it from the built site.
+            git clone --depth=1 "$REPO_URL" /tmp/ghp
+            cd /tmp/ghp
+            git checkout --orphan gh-pages
+            git rm -rf . >/dev/null 2>&1 || true
+            mkdir -p "$DEST"
+            cp -r "$GITHUB_WORKSPACE/docs/build/." "$DEST/"
+            touch .nojekyll
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "deploy: $DEST"
+            git push -u origin gh-pages
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: /tmp/site

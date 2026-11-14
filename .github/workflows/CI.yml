@@ -55,6 +55,17 @@ jobs:
         # Delete any cached PyCall deps.jl so it is rebuilt against the Python
         # configured above instead of a stale Conda Python from a previous run.
         run: rm -f "$HOME/.julia/packages/PyCall/"*/deps/deps.jl
+      - name: Recreate the Conda root directory
+        shell: bash
+        # The depot cache can carry a Conda.jl deps.jl pointing at
+        # ~/.julia/conda/3/<arch>, which is not itself cached; Conda then
+        # fails to load with "Path to conda environment is not valid".
+        # Recreate the directory so a cached depot can never poison fresh
+        # runners. (The deps.jl itself is left intact: on uncached runners it
+        # is built by julia-buildpkg below, and on cached runners it is valid
+        # once the directory exists.)
+        run: |
+          mkdir -p "$(julia -e 'print(replace(joinpath(first(DEPOT_PATH), "conda", "3", string(Sys.ARCH)), "\\" => "/"))')"
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1

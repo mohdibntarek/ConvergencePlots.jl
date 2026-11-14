@@ -1,5 +1,11 @@
 # NEWS
 
+## 0.2.1
+
+- Fixed the backend state reuse and figure lifecycle bugs (plots, legends
+  and history no longer leak across figures).
+- Hardened CI against a poisoned Conda depot cache.
+
 ## 0.2.0
 
 - **Breaking**: plotting backends are now implemented as package extensions.

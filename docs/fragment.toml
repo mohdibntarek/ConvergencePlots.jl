@@ -1,0 +1,10 @@
+name = "ConvergencePlots"
+modules = ["ConvergencePlots"]
+
+[[pages]]
+title = "Introduction"
+file = "index.md"
+
+[[pages]]
+title = "Docstrings"
+file = "docstrings.md"

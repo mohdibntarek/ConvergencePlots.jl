@@ -56,6 +56,19 @@ end
 function makiebackend()
     return _getbackend(:ConvergencePlotsMakieExt, :makie_backend, "Makie")
 end
+@doc """
+    plotsbackend()
+
+Return the `Plots` plotting backend. `Plots` must be loaded first, e.g. with
+`using Plots`. See also [`pyplotbackend`](@ref) and [`makiebackend`](@ref).
+""" plotsbackend
+@doc """
+    makiebackend()
+
+Return the `Makie` plotting backend. `Makie` must be loaded first, e.g. with
+`using Makie` (together with a backend such as `CairoMakie` or `GLMakie`).
+See also [`pyplotbackend`](@ref) and [`plotsbackend`](@ref).
+""" makiebackend
 
 function _getbackend(extname::Symbol, f::Symbol, pkg::String)
     ext = Base.get_extension(@__MODULE__, extname)

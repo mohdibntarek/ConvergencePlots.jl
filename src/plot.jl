@@ -40,14 +40,14 @@ must be loaded for the default backend to be available, see
   value is `["Residual"]`.
 - `options`: a dictionary mapping each name in `names` to a `NamedTuple` of
   plotting options to pass to the backend, e.g. `(label = "KKT residual",
-  ls = "--", marker = "+")` for the `PyPlot` backend. If `label` is not
+  ls = "--", marker = "+")` for the `PythonPlot` backend. If `label` is not
   passed, it defaults to the corresponding name in `names`. A single
   `NamedTuple` of options without the `label` option can also be passed, and
   it will be used for all the names.
 - `show`: if `true` the empty figure will be displayed. This is `false` by
   default.
 - `figsize`: the `(width, height)` of the figure. The unit is backend
-  dependent: inches for `PyPlot`; for `Plots` and `Makie` the value is
+  dependent: inches for `PythonPlot`; for `Plots` and `Makie` the value is
   scaled by a factor of 100 and interpreted as pixels.
 """
 function ConvergencePlot(

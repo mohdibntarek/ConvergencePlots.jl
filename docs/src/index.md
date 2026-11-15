@@ -1,7 +1,7 @@
 # ConvergencePlots.jl
 
 A Julia package for live tracking of the convergence of your algorithm. The
-plotting is delegated to a backend of your choice: [PyPlot.jl](https://github.com/JuliaPy/PyPlot.jl)
+plotting is delegated to a backend of your choice: [PythonPlot.jl](https://github.com/JuliaPy/PythonPlot.jl)
 (the default), [Plots.jl](https://github.com/JuliaPlots/Plots.jl), or
 [Makie.jl](https://github.com/MakieOrg/Makie.jl). The backends are implemented
 as package extensions, so you only load (and pay for) the plotting package
@@ -17,7 +17,7 @@ pkg"add ConvergencePlots"
 
 The package does not depend on any plotting package by default. Load the
 plotting package of your choice before constructing a plot, e.g. `using
-PyPlot`, `using Plots`, or `using Makie` (together with a Makie backend such
+PythonPlot`, `using Plots`, or `using Makie` (together with a Makie backend such
 as `CairoMakie` or `GLMakie`).
 
 ## Usage
@@ -25,12 +25,12 @@ as `CairoMakie` or `GLMakie`).
 First create an empty plot:
 
 ```julia
-using ConvergencePlots, PyPlot
+using ConvergencePlots, PythonPlot
 
 plot = ConvergencePlot()
 ```
 
-The default backend is the `PyPlot` backend if `PyPlot` is loaded, otherwise
+The default backend is the `PythonPlot` backend if `PythonPlot` is loaded, otherwise
 the `Plots` backend if `Plots` is loaded, otherwise the `Makie` backend if
 `Makie` is loaded. To choose a backend explicitly, pass the `backend`
 keyword argument:
@@ -56,7 +56,7 @@ The keyword arguments you can pass to the `ConvergencePlot` constructor are:
 
 - `options`: a dictionary mapping each name in `names` to a `NamedTuple`.
   Each named tuple has the plotting options to pass to the plotting backend,
-  e.g. `(label = "KKT residual", ls = "--", marker = "+")` for the `PyPlot`
+  e.g. `(label = "KKT residual", ls = "--", marker = "+")` for the `PythonPlot`
   backend. If `label` is not passed, it defaults to the corresponding name in
   `names`. You can also pass a single `NamedTuple` of options without the
   `label` option, and it will be used for all the names. The default colors
@@ -67,7 +67,7 @@ The keyword arguments you can pass to the `ConvergencePlot` constructor are:
   default.
 
 - `figsize`: the `(width, height)` of the figure. The unit is backend
-  dependent: inches for `PyPlot`; for `Plots` and `Makie` the value is scaled
+  dependent: inches for `PythonPlot`; for `Plots` and `Makie` the value is scaled
   by a factor of 100 and interpreted as pixels.
 
 After creating an empty plot, you can add points to it as follows:
@@ -114,7 +114,7 @@ closeplot!(plot)
 ## Example
 
 ```julia
-using ConvergencePlots, PyPlot
+using ConvergencePlots, PythonPlot
 
 plot = ConvergencePlot(
     names = ["KKT residual", "|Δx|", "|Δf|"],

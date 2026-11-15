@@ -9,7 +9,7 @@ const PlotsExt = Base.get_extension(ConvergencePlots, :ConvergencePlotsPlotsExt)
 const MakieExt = Base.get_extension(ConvergencePlots, :ConvergencePlotsMakieExt)
 
 @testset "default backend" begin
-    # PyPlot is not loaded in this process, Plots is loaded before Makie, so
+    # PythonPlot is not loaded in this process, Plots is loaded before Makie, so
     # the default backend is the Plots backend.
     @test ConvergencePlots.default_backend() isa PlotsExt.PlotsBackend
     @test ConvergencePlots.plotsbackend() isa PlotsExt.PlotsBackend

@@ -15,12 +15,16 @@ axes.
 mutable struct PyPlotBackend <: AbstractPlotBackend
     fig::Any
     axs::Vector{Any}
+    legend::Any
 end
 
-pyplot_backend() = PyPlotBackend(nothing, Any[])
+pyplot_backend() = PyPlotBackend(nothing, Any[], nothing)
 
 function _initialize!(b::PyPlotBackend, ncurves, figsize)
     b.fig, b.axs = emptyplot(ncurves, figsize)
+    # The old legend belongs to the previous figure and must not leak into
+    # the new one.
+    b.legend = nothing
     return b
 end
 
@@ -50,7 +54,13 @@ function _decorate!(b::PyPlotBackend, names, options)
             ax.tick_params(axis = "y", labelcolor = pycolor(options[n].color))
         end
         b.fig.canvas.draw()
-        b.fig.legend(loc = 2)
+        # Remove the previous figure legend before creating a new one, so
+        # repeated `updateplot!` calls do not stack legends.
+        if b.legend !== nothing
+            b.legend.remove()
+            b.legend = nothing
+        end
+        b.legend = b.fig.legend(loc = 2)
     end
     return b
 end
@@ -76,6 +86,9 @@ end
 
 function _close!(b::PyPlotBackend)
     PyPlot.close(b.fig)
+    b.fig = nothing
+    b.axs = Any[]
+    b.legend = nothing
     return b
 end
 

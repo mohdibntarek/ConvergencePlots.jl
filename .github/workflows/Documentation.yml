@@ -104,6 +104,7 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true  # repo Pages config not set up yet; gh-pages branch is pushed regardless
       - name: Post preview URL comment
         if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@v3

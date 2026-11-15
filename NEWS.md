@@ -1,5 +1,10 @@
 # NEWS
 
+## 0.2.2
+
+- The PyPlot backend no longer stacks a new figure legend on every
+  `updateplot!` (the previous legend is removed first).
+
 ## 0.2.1
 
 - Fixed the backend state reuse and figure lifecycle bugs (plots, legends

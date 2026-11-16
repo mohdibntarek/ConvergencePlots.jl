@@ -1,26 +1,27 @@
-module ConvergencePlotsPyPlotExt
+module ConvergencePlotsPythonPlotExt
 
-using ConvergencePlots, PyPlot
+using ConvergencePlots, PythonPlot
 using Colors: RGB
 import ConvergencePlots: AbstractPlotBackend,
     _initialize!, _clear!, _plotseries!, _decorate!, _show!, _save!, _close!
 
 """
-    PyPlotBackend
+    PythonPlotBackend
 
-Plotting backend based on `PyPlot` (matplotlib). Curves are drawn in stacked
-subplots with each pair of curves sharing an x-axis through matplotlib twin
-axes.
+Plotting backend based on `PythonPlot` (matplotlib through
+[PythonCall](https://github.com/JuliaPy/PythonCall.jl)). Curves are drawn in
+stacked subplots with each pair of curves sharing an x-axis through
+matplotlib twin axes.
 """
-mutable struct PyPlotBackend <: AbstractPlotBackend
+mutable struct PythonPlotBackend <: AbstractPlotBackend
     fig::Any
     axs::Vector{Any}
     legend::Any
 end
 
-pyplot_backend() = PyPlotBackend(nothing, Any[], nothing)
+pyplot_backend() = PythonPlotBackend(nothing, Any[], nothing)
 
-function _initialize!(b::PyPlotBackend, ncurves, figsize)
+function _initialize!(b::PythonPlotBackend, ncurves, figsize)
     b.fig, b.axs = emptyplot(ncurves, figsize)
     # The old legend belongs to the previous figure and must not leak into
     # the new one.
@@ -28,7 +29,7 @@ function _initialize!(b::PyPlotBackend, ncurves, figsize)
     return b
 end
 
-function _clear!(b::PyPlotBackend)
+function _clear!(b::PythonPlotBackend)
     keepinteractive() do
         for ax in b.axs
             ax.clear()
@@ -37,13 +38,13 @@ function _clear!(b::PyPlotBackend)
     return b
 end
 
-function _plotseries!(b::PyPlotBackend, i, x, y; color = nothing, kwargs...)
+function _plotseries!(b::PythonPlotBackend, i, x, y; color = nothing, kwargs...)
     ax = b.axs[i]
     ax.plot(x, y; color = pycolor(color), kwargs...)
     return b
 end
 
-function _decorate!(b::PyPlotBackend, names, options)
+function _decorate!(b::PythonPlotBackend, names, options)
     keepinteractive() do
         for (i, n) in enumerate(names)
             ax = b.axs[i]
@@ -65,27 +66,27 @@ function _decorate!(b::PyPlotBackend, names, options)
     return b
 end
 
-function _show!(b::PyPlotBackend)
+function _show!(b::PythonPlotBackend)
     keepinteractive() do
-        # Display the backend's own figure instead of the global
-        # PyPlot.show(), which shows all figures (or gcf()).
-        if PyPlot.hasproperty(b.fig, :show)
-            PyPlot.pycall(b.fig."show", PyPlot.PyObject)
+        # Display the backend's own figure instead of PythonPlot.show(),
+        # which shows all figures (or gcf()).
+        if PythonPlot.hasproperty(b.fig, :show)
+            b.fig.show()
         else
             # Fallback for very old matplotlib versions without Figure.show.
-            PyPlot.show(block = false)
+            PythonPlot.show(block = false)
         end
     end
     return b
 end
 
-function _save!(b::PyPlotBackend, filename)
+function _save!(b::PythonPlotBackend, filename)
     b.fig.savefig(filename)
     return b
 end
 
-function _close!(b::PyPlotBackend)
-    PyPlot.close(b.fig)
+function _close!(b::PythonPlotBackend)
+    PythonPlot.pyplot.close(b.fig)
     b.fig = nothing
     b.axs = Any[]
     b.legend = nothing
@@ -112,10 +113,12 @@ function emptyplot(ncurves, figsize)
     end
     local fig, axs
     keepinteractive() do
-        fig, axs1 = PyPlot.subplots(nsubplots, figsize = figsize)
+        fig, axs1 = PythonPlot.subplots(nsubplots, figsize = figsize)
         axs = []
         for i in 1:nsubplots
-            ax1 = nsubplots == 1 ? axs1 : axs1[i]
+            # PythonCall's generic `Py` indexing is 0-based, unlike the
+            # PyCall `PyObject` indexing this code used before the switch.
+            ax1 = nsubplots == 1 ? axs1 : axs1[i - 1]
             push!(axs, ax1)
             if 2i <= ncurves
                 ax2 = ax1.twinx()
@@ -127,12 +130,12 @@ function emptyplot(ncurves, figsize)
 end
 
 function keepinteractive(f)
-    was_interactive = PyPlot.isinteractive()
-    was_interactive && PyPlot.ioff()
+    was_interactive = PythonPlot.pyconvert(Bool, PythonPlot.isinteractive())
+    was_interactive && PythonPlot.ioff()
     try
         f()
     finally
-        was_interactive && PyPlot.ion()
+        was_interactive && PythonPlot.ion()
     end
 end
 

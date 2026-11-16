@@ -5,7 +5,7 @@ Abstract supertype of the plotting backends supported by ConvergencePlots.
 Each backend is provided by a package extension that is automatically loaded
 when the corresponding plotting package is loaded:
 
-- `ConvergencePlotsPyPlotExt` for `PyPlot` (the default backend),
+- `ConvergencePlotsPythonPlotExt` for `PythonPlot` (the default backend),
 - `ConvergencePlotsPlotsExt` for `Plots`,
 - `ConvergencePlotsMakieExt` for `Makie`.
 
@@ -17,13 +17,13 @@ abstract type AbstractPlotBackend end
 """
     default_backend()
 
-Return the default plotting backend: the `PyPlot` backend if `PyPlot` is
-loaded, otherwise the `Plots` backend if `Plots` is loaded, otherwise the
+Return the default plotting backend: the `PythonPlot` backend if `PythonPlot`
+is loaded, otherwise the `Plots` backend if `Plots` is loaded, otherwise the
 `Makie` backend if `Makie` is loaded. An `ArgumentError` is thrown if none of
 these plotting packages is loaded.
 """
 function default_backend()
-    if (ext = Base.get_extension(@__MODULE__, :ConvergencePlotsPyPlotExt)) !== nothing
+    if (ext = Base.get_extension(@__MODULE__, :ConvergencePlotsPythonPlotExt)) !== nothing
         return ext.pyplot_backend()
     elseif (ext = Base.get_extension(@__MODULE__, :ConvergencePlotsPlotsExt)) !== nothing
         return ext.plots_backend()
@@ -31,8 +31,8 @@ function default_backend()
         return ext.makie_backend()
     else
         throw(ArgumentError(
-            "no plotting backend is loaded; load one of `PyPlot`, `Plots`, or " *
-            "`Makie` (e.g. `using PyPlot`) before constructing a " *
+            "no plotting backend is loaded; load one of `PythonPlot`, `Plots`, or " *
+            "`Makie` (e.g. `using PythonPlot`) before constructing a " *
             "`ConvergencePlot`, or pass the `backend` keyword argument " *
             "explicitly",
         ))
@@ -45,10 +45,10 @@ end
     makiebackend()
 
 Return the plotting backend of the corresponding package. The package must be
-loaded first, e.g. with `using PyPlot`, `using Plots`, or `using Makie`.
+loaded first, e.g. with `using PythonPlot`, `using Plots`, or `using Makie`.
 """
 function pyplotbackend()
-    return _getbackend(:ConvergencePlotsPyPlotExt, :pyplot_backend, "PyPlot")
+    return _getbackend(:ConvergencePlotsPythonPlotExt, :pyplot_backend, "PythonPlot")
 end
 function plotsbackend()
     return _getbackend(:ConvergencePlotsPlotsExt, :plots_backend, "Plots")
@@ -56,6 +56,19 @@ end
 function makiebackend()
     return _getbackend(:ConvergencePlotsMakieExt, :makie_backend, "Makie")
 end
+@doc """
+    plotsbackend()
+
+Return the `Plots` plotting backend. `Plots` must be loaded first, e.g. with
+`using Plots`. See also [`pyplotbackend`](@ref) and [`makiebackend`](@ref).
+""" plotsbackend
+@doc """
+    makiebackend()
+
+Return the `Makie` plotting backend. `Makie` must be loaded first, e.g. with
+`using Makie` (together with a backend such as `CairoMakie` or `GLMakie`).
+See also [`pyplotbackend`](@ref) and [`plotsbackend`](@ref).
+""" makiebackend
 
 function _getbackend(extname::Symbol, f::Symbol, pkg::String)
     ext = Base.get_extension(@__MODULE__, extname)

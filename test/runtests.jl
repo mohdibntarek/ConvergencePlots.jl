@@ -3,9 +3,9 @@ ENV["MPLBACKEND"] = "agg"
 
 using ConvergencePlots, Test
 using Colors: RGB
-using PyPlot
+using PythonPlot
 
-const PyPlotExt = Base.get_extension(ConvergencePlots, :ConvergencePlotsPyPlotExt)
+const PythonPlotExt = Base.get_extension(ConvergencePlots, :ConvergencePlotsPythonPlotExt)
 
 @testset "no backend loaded" begin
     # In a fresh process that only loads ConvergencePlots, no backend is
@@ -26,8 +26,8 @@ const PyPlotExt = Base.get_extension(ConvergencePlots, :ConvergencePlotsPyPlotEx
 end
 
 @testset "default backend" begin
-    @test ConvergencePlots.default_backend() isa PyPlotExt.PyPlotBackend
-    @test ConvergencePlots.pyplotbackend() isa PyPlotExt.PyPlotBackend
+    @test ConvergencePlots.default_backend() isa PythonPlotExt.PythonPlotBackend
+    @test ConvergencePlots.pyplotbackend() isa PythonPlotExt.PythonPlotBackend
     @test_throws ArgumentError ConvergencePlots.plotsbackend()
     @test_throws ArgumentError ConvergencePlots.makiebackend()
 end
@@ -40,14 +40,14 @@ end
     @test isempty(plot.history["Residual"])
     @test plot.options["Residual"].label == "Residual"
     @test plot.options["Residual"].color isa RGB
-    @test plot.backend isa PyPlotExt.PyPlotBackend
+    @test plot.backend isa PythonPlotExt.PythonPlotBackend
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     plot = ConvergencePlot(10)
     @test plot.npoints == 10
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     plot = ConvergencePlot(
         backend = ConvergencePlots.pyplotbackend(),
@@ -65,7 +65,7 @@ end
     @test plot.options["B"].label == "B"
     @test plot.options["B"].ls == ":"
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 end
 
 @testset "addpoint!" begin
@@ -76,7 +76,7 @@ end
     end
     @test plot.history["Residual"] == [3.0, 4.0, 5.0]
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # Multiple metrics.
     plot = ConvergencePlot(3, names = ["A", "B"])
@@ -90,20 +90,20 @@ end
     @test plot.history["A"] == [3.0, 4.0, 5.0]
     @test plot.history["B"] == [9.0, 16.0, 25.0]
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # addpoint! returns the plot.
     plot = ConvergencePlot()
     @test addpoint!(plot, 1.0; show = false) === plot
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # Invalid inputs.
     plot = ConvergencePlot(3, names = ["A", "B"])
     @test_throws AssertionError addpoint!(plot, 1.0; show = false)
     @test_throws AssertionError addpoint!(plot, Dict("C" => 1.0); show = false)
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 end
 
 @testset "addpoints!" begin
@@ -113,7 +113,7 @@ end
     addpoints!(plot, Dict("Residual" => [2.0, 3.0]); show = false)
     @test plot.history["Residual"] == [1.0, 2.0, 3.0]
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # Windowing when the batch does not fit.
     plot = ConvergencePlot(5)
@@ -123,14 +123,14 @@ end
     addpoints!(plot, Dict("Residual" => [6.0, 7.0, 8.0]); show = false)
     @test plot.history["Residual"] == [4.0, 5.0, 6.0, 7.0, 8.0]
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # A batch longer than npoints keeps only its last npoints points.
     plot = ConvergencePlot(3)
     addpoints!(plot, Dict("Residual" => [1.0, 2.0, 3.0, 4.0, 5.0]))
     @test plot.history["Residual"] == [3.0, 4.0, 5.0]
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # A batch of exactly npoints points replaces the history.
     plot = ConvergencePlot(3)
@@ -138,14 +138,14 @@ end
     addpoints!(plot, Dict("Residual" => [4.0, 5.0, 6.0]))
     @test plot.history["Residual"] == [4.0, 5.0, 6.0]
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # addpoints! returns the plot and rejects unknown names.
     plot = ConvergencePlot(3)
     @test addpoints!(plot, Dict("Residual" => [1.0, 2.0])) === plot
     @test_throws AssertionError addpoints!(plot, Dict("C" => [1.0]))
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 
     # Regression: a batch that overflows the window while the history is not
     # yet at capacity (e.g. 60/100 points + a batch of 50) used to write the
@@ -156,7 +156,7 @@ end
     addpoints!(plot, Dict("Residual" => collect(61.0:110.0)); show = false)
     @test plot.history["Residual"] == collect(11.0:110.0)
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 end
 
 @testset "options" begin
@@ -226,36 +226,38 @@ end
 
 @testset "emptyplot" begin
     for (ncurves, nsubplots) in [(1, 1), (2, 1), (3, 2), (4, 2), (5, 3)]
-        fig, axs = PyPlotExt.emptyplot(ncurves, (4, 3))
+        fig, axs = PythonPlotExt.emptyplot(ncurves, (4, 3))
         @test length(axs) == ncurves
         # Every pair of curves shares an x-axis through twinx.
         for i in 1:2:ncurves
             if i < ncurves
                 @test axs[i + 1] !== axs[i]
-                @test axs[i + 1].get_shared_x_axes().joined(axs[i], axs[i + 1])
+                @test PythonPlot.pyconvert(
+                    Bool, axs[i + 1].get_shared_x_axes().joined(axs[i], axs[i + 1])
+                )
             end
         end
-        PyPlot.close(fig)
+        PythonPlot.pyplot.close(fig)
     end
 end
 
 @testset "keepinteractive" begin
-    PyPlot.ion()
-    PyPlotExt.keepinteractive() do
-        @test !PyPlot.isinteractive()
+    PythonPlot.ion()
+    PythonPlotExt.keepinteractive() do
+        @test !PythonPlot.pyconvert(Bool, PythonPlot.isinteractive())
     end
-    @test PyPlot.isinteractive()
-    PyPlot.ioff()
-    PyPlotExt.keepinteractive() do
-        @test !PyPlot.isinteractive()
+    @test PythonPlot.pyconvert(Bool, PythonPlot.isinteractive())
+    PythonPlot.ioff()
+    PythonPlotExt.keepinteractive() do
+        @test !PythonPlot.pyconvert(Bool, PythonPlot.isinteractive())
     end
-    @test !PyPlot.isinteractive()
+    @test !PythonPlot.pyconvert(Bool, PythonPlot.isinteractive())
 
     # The interactive state is restored even when f throws.
-    PyPlot.ion()
-    @test_throws ErrorException PyPlotExt.keepinteractive(() -> error("boom"))
-    @test PyPlot.isinteractive()
-    PyPlot.ioff()
+    PythonPlot.ion()
+    @test_throws ErrorException PythonPlotExt.keepinteractive(() -> error("boom"))
+    @test PythonPlot.pyconvert(Bool, PythonPlot.isinteractive())
+    PythonPlot.ioff()
 end
 
 @testset "updateplot!" begin
@@ -272,7 +274,7 @@ end
         @test isfile(filename)
     end
     closeplot!(plot)
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 end
 
 @testset "closeplot!" begin
@@ -284,34 +286,33 @@ end
     # The new plot is empty and usable.
     addpoint!(plot, 1.0; show = false)
     @test plot.history["Residual"] == [1.0]
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 end
 
 @testset "_show! displays the backend figure" begin
     plot = ConvergencePlot(show = false)
     backend = plot.backend
     fig = backend.fig
-    globals_dict = PyPlot.PyDict(Dict("fig" => fig, "plt" => PyPlot.plt))
+    globals_dict = PythonPlot.pydict(fig = fig, plt = PythonPlot.pyplot)
     # Spy on the global matplotlib.pyplot.show and on the backend figure's
     # manager.show to verify that _show! displays the backend's own figure
     # instead of calling the global show.
-    PyPlot.pycall(PyPlot.pybuiltin("exec"), PyPlot.PyObject, """
-    _cp_orig_show = plt.show
-    _cp_plt_show_calls = []
-    plt.show = lambda *args, **kwargs: _cp_plt_show_calls.append(True)
-    fig.canvas.manager.show = lambda *args, **kwargs: setattr(fig, "_cp_shown", True)
-    """, globals_dict)
+    PythonPlot.pyexec(
+        """
+        _cp_orig_show = plt.show
+        _cp_plt_show_calls = []
+        plt.show = lambda *args, **kwargs: _cp_plt_show_calls.append(True)
+        fig.canvas.manager.show = lambda *args, **kwargs: setattr(fig, "_cp_shown", True)
+        """,
+        globals_dict,
+    )
     try
         @test ConvergencePlots._show!(backend) === backend
-        calls = PyPlot.pycall(
-            PyPlot.pybuiltin("eval"), PyPlot.PyObject, "_cp_plt_show_calls", globals_dict,
-        )
-        @test PyPlot.pycall(calls."__len__", Int) == 0
-        @test PyPlot.hasproperty(fig, :_cp_shown)
+        calls = globals_dict["_cp_plt_show_calls"]
+        @test PythonPlot.pyconvert(Int, PythonPlot.pylen(calls)) == 0
+        @test PythonPlot.hasproperty(fig, :_cp_shown)
     finally
-        PyPlot.pycall(
-            PyPlot.pybuiltin("exec"), PyPlot.PyObject, "plt.show = _cp_orig_show", globals_dict,
-        )
+        PythonPlot.pyexec("plt.show = _cp_orig_show", globals_dict)
     end
-    PyPlot.close(plot.backend.fig)
+    PythonPlot.pyplot.close(plot.backend.fig)
 end
